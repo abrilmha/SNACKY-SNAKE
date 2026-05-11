@@ -1,7 +1,9 @@
-# 🐍 SnackySnake — Agente Inteligente con A*
+# SnackySnake — Agente Inteligente con A*
 
 **Inteligencia Artificial — Universidad de las Américas Puebla**  
-Abril Morales Huerta · Anellisse Herrera Maldonado · Sebastián Torres Morales
+Abril Morales Huerta - 181278
+Anellisse Herrera Maldonado - 181565
+Sebastián Torres Morales - 179763
 
 ---
 
