@@ -10,10 +10,9 @@ Controles:
   Q / ESC  — salir
 """
 
-import pygame
-import heapq
-import random
 import time
+import pygame
+from agent import SnakeAgent
 
 
 #  CONFIGURACIÓN
@@ -40,164 +39,8 @@ GREEN_C    = (52, 211, 153)
 AMBER_C    = (251, 191,  36)
 
 
-# 
-#  HEURÍSTICA Y A*
-#
-
-# distancia Manhattan porque solo nos movemos
-# arriba, abajo, izquierda y derecha (4-conectividad)
-def manhattan(a, b):
-    return abs(a[0]-b[0]) + abs(a[1]-b[1])
-
-# algoritmo A*
-# aquí buscamos la ruta más corta hacia la comida
-def astar(start, goal, blocked, cols, rows):
-    h0 = manhattan(start, goal)
-    counter = 0  # desempate cuando f es igual
-    heap = [(h0, counter, start, [start])]
-    visited = set()
-
-    while heap:
-        f, _, cur, path = heapq.heappop(heap)
-        if cur in visited:
-            continue
-        visited.add(cur)
-        if cur == goal:
-            return path
-        for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
-            nb = (cur[0]+dr, cur[1]+dc)
-            if 0 <= nb[0] < rows and 0 <= nb[1] < cols and nb not in blocked and nb not in visited:
-                ng = len(path)  # g(n) real basado en largo del camino
-                counter += 1
-                heapq.heappush(heap, (ng + manhattan(nb, goal), counter, nb, path+[nb]))
-    return None
-
-
-
-#  FLOOD FILL — contar espacios accesibles desde pos
-
-# esta función nos ayuda a evaluar si una ruta nos encierra o no
-def flood_fill(pos, blocked, cols, rows):
-    visited = {pos}
-    queue   = [pos]
-    while queue:
-        cur = queue.pop()
-        for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
-            nb = (cur[0]+dr, cur[1]+dc)
-            if 0 <= nb[0] < rows and 0 <= nb[1] < cols and nb not in blocked and nb not in visited:
-                visited.add(nb)
-                queue.append(nb)
-    return len(visited)
-
-
-
-#  AGENTE
-
-class SnakeAgent:
-    def __init__(self):
-        self.reset()
-# el método reset inicializa o reinicia el estado del juego, colocando la serpiente en el centro, generando la primera comida y reseteando las métricas y el historial.
-    def reset(self):
-        mid_r, mid_c = ROWS//2, COLS//2
-        self.snake  = [(mid_r, mid_c), (mid_r, mid_c-1), (mid_r, mid_c-2)]
-        self.food   = self._new_food()
-        self.score  = 0
-        self.moves  = 0
-        self.deaths = 0
-        self.alive  = True
-        self.path   = []
-        self.start_time = time.time()
-        self.score_history = []   # (tiempo, puntaje)
-        self.move_history  = []   # movimientos por comida
-# el método _new_food genera una nueva posición para la comida, asegurándose de que no esté ocupada por la serpiente. 
-# Primero crea un conjunto de las posiciones ocupadas por la serpiente, luego genera una lista de celdas libres y finalmente elige una al azar.
-    def _new_food(self):
-        occupied = set(self.snake) if hasattr(self, 'snake') else set()
-        free = [(r,c) for r in range(ROWS) for c in range(COLS) if (r,c) not in occupied]
-        return random.choice(free) if free else None
-
-    # decidir el próximo movimiento basado en la situación actual
-    def decide(self):
-        if not self.alive or self.food is None:
-            return
-
-        # si ya tenemos ruta válida, no recalcular
-        if self.path and len(self.path) > 1:
-            return
-
-        head    = self.snake[0]
-        blocked = set(self.snake[1:-1])  # la última celda se libera porque la serpiente se mueve
-
-        # 1) Intentar ruta directa A* hacia la comida
-        path = astar(head, self.food, blocked, COLS, ROWS)
-
-        if path and len(path) > 1:
-            # Verificar que tomar esa ruta no nos encierra
-            # Simulamos el movimiento y hacemos flood fill
-            future_snake = [path[1]] + self.snake[:-1]
-            future_blocked = set(future_snake[1:])
-            space = flood_fill(path[1], future_blocked, COLS, ROWS)
-
-            if space > len(self.snake) + 3:      # hay espacio suficiente para moverse después de tomar esta ruta
-                self.path = path
-                return
-
-        # 2) Fallback: moverse al vecino con más espacio libre (sobrevivir)
-        # si no encontramos ruta segura, intentamos sobrevivir moviéndonos al vecino con más espacio libre
-        best_move  = None
-        best_space = -1
-
-        for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
-            nb = (head[0] + dr, head[1] + dc)
-
-            if 0 <= nb[0] < ROWS and 0 <= nb[1] < COLS and nb not in blocked:
-
-                # simular movimiento
-                future_snake = [nb] + self.snake[:-1]
-                future_blocked = set(future_snake[1:-1])
-
-                space = flood_fill(nb, future_blocked, COLS, ROWS)
-
-                if space > best_space:
-                    best_space = space
-                    best_move = nb
-        if best_move:
-            self.path = [head, best_move]
-        else:
-            self.path = []
-
-    # ejecutar un paso del juego: decidir movimiento, actualizar posición, verificar colisiones, comer comida y actualizar métricas
-    def step(self):
-        if not self.alive:
-            return
-
-        self.decide()
-    # si no hay ruta o la ruta es demasiado corta, significa que estamos atrapados o sin opciones, lo que resulta en la muerte de la serpiente.
-        if not self.path or len(self.path) < 2:
-            self.alive  = False
-            self.deaths += 1
-            return
-
-        next_pos = self.path[1]
-        self.path = self.path[1:]
-
-        # colisión con el cuerpo o paredes
-        if next_pos in self.snake or \
-           not (0 <= next_pos[0] < ROWS and 0 <= next_pos[1] < COLS):
-            self.alive  = False
-            self.deaths += 1
-            return
-
-        self.snake.insert(0, next_pos)
-        self.moves += 1
-# si la serpiente come la comida, incrementamos el puntaje, registramos el tiempo y movimientos, y generamos nueva comida.
-        if next_pos == self.food:
-            self.score += 1
-            elapsed = round(time.time() - self.start_time, 1)
-            self.score_history.append((elapsed, self.score))
-            self.food = self._new_food()
-        else:
-            self.snake.pop()
+# Las funciones A*, Flood Fill y la clase SnakeAgent
+# se importan desde agent.py para mantener código compartido
 
 
 
@@ -295,7 +138,7 @@ def main():
     path_surf = pygame.Surface((W, H), pygame.SRCALPHA)
 
     clock  = pygame.time.Clock()
-    agent  = SnakeAgent()
+    agent  = SnakeAgent(ROWS, COLS)
     fps    = FPS_BASE
     paused = False
 
@@ -307,7 +150,7 @@ def main():
                 if event.key in (pygame.K_q, pygame.K_ESCAPE):
                     pygame.quit(); return
                 if event.key == pygame.K_r:
-                    agent = SnakeAgent()
+                    agent = SnakeAgent(ROWS, COLS)
                     paused = False
                 if event.key == pygame.K_SPACE:
                     paused = not paused
