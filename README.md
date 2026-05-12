@@ -55,43 +55,53 @@ SnackySnake/
 
 ## Dependencias
 
-- **Python:** 3.10 a 3.13 
-- **pygame:** 2.6.1 (para la interfaz gráfica)
+- **Python:** 3.10 a 3.13
+- **pygame:** 2.6.1
 
-### Instalación rápida
+## Cómo correr el proyecto
+
+Si vas a clonar el repositorio desde cero, estos son los pasos recomendados.
+
+### 1. Clonar el repositorio
 
 ```bash
+git clone <URL_DEL_REPOSITORIO>
+cd SNACKY-SNAKE
+```
+
+Si ya tienes la carpeta en tu equipo, solo abre una terminal dentro de `SNACKY-SNAKE`.
+
+### 2. Instalar dependencias
+
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
----
 
-## Cómo ejecutar
-
-### Juego principal (con interfaz visual pygame)
+### 3. Ejecutar el juego principal
 
 ```bash
 python src/snaky_snake.py
 ```
 
+Controles del juego:
+- `ESPACIO` para pausar o reanudar
+- `R` para reiniciar la partida
+- `+` y `-` para subir o bajar la velocidad
+- `Q` o `ESC` para salir
 
-**Controles:**
-- `ESPACIO` — pausar / reanudar
-- `R` — reiniciar partida
-- `+` / `-` — aumentar / disminuir velocidad
-- `Q` / `ESC` — salir
-
-###  Mini experimento (3 escenarios de prueba)
+### 4. Ejecutar el mini experimento
 
 ```bash
 python experiments/mini_experimento.py
 ```
 
-Ejecuta tres escenarios de IA:
-1. **Ruta directa** — valida que A* funciona
-2. **Fallback por Flood Fill** — verifica que evita trampas
-3. **Sin ruta segura** — prueba supervivencia
+Ese script corre tres escenarios de prueba:
+1. Ruta directa: verifica que A* encuentre la comida.
+2. Fallback por Flood Fill: comprueba que el agente no se meta en trampas.
+3. Sin ruta segura: prueba el comportamiento de supervivencia.
 
-Genera archivos en `results/`: CSV, JSON y TXT.
+Al terminar, se generan archivos en `results/` con métricas en CSV, JSON y TXT.
 
 ---
 
