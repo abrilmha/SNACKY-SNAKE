@@ -73,33 +73,64 @@ python experiments/mini_experimento.py
 Al correr `mini_experimento.py`:
 
 ```
-ENTRADA
-  S=serpiente  F=comida
+--- MINI EXPERIMENTO: AGENTE SNAKE ---
 
- . . . . F
- . . . . .
- . s S . .
- . . . . .
- . . . . .
+----------------------
+Paso 0
 
-DECISION  (ruta A* marcada con *)
- . . * * F
- . . * . .
- . s S . .
- . . . . .
- . . . . .
+Estado actual:
+. . . . F
+. . . . .
+. o H . .
+. . . . .
+. . . . .
 
-  f(n) = g(n) + h(n)  →  costo=4 pasos
-  accion elegida: moverse a (1, 2)
+Acción elegida: arriba
 
-SALIDA
- . . . . F
- . . S . .
- . . s . .
- . . . . .
- . . . . .
+Nuevo estado:
+. . . . F
+. . H . .
+. . o . .
+. . . . .
+. . . . .
 
-  nueva cabeza: (1, 2)  |  cuerpo: [(2, 2)]
+----------------------
+Paso 1
+
+Estado actual:
+. . . . F
+. . H . .
+. . o . .
+. . . . .
+. . . . .
+
+Acción elegida: arriba
+
+Nuevo estado:
+. . H . F
+. . o . .
+. . . . .
+. . . . .
+. . . . .
+
+----------------------
+Paso 2
+
+Estado actual:
+. . H . F
+. . o . .
+. . . . .
+. . . . .
+. . . . .
+
+Acción elegida: derecha
+
+Nuevo estado:
+. . o H F
+. . . . .
+. . . . .
+. . . . .
+. . . . .
 ```
 
 ---
