@@ -19,8 +19,8 @@ import time
 #  CONFIGURACIÓN
 
 CELL       = 32          # píxeles por celda
-COLS       = 20          # columnas del grid
-ROWS       = 18          # filas del grid
+COLS       = 10         # columnas del grid
+ROWS       = 10          # filas del grid
 W          = COLS * CELL
 H          = ROWS * CELL
 PANEL_H    = 140         # panel inferior de métricas
@@ -52,30 +52,24 @@ def manhattan(a, b):
 # algoritmo A*
 # aquí buscamos la ruta más corta hacia la comida
 def astar(start, goal, blocked, cols, rows):
-    # Devuelve lista de celdas desde start hasta goal, o None.
     h0 = manhattan(start, goal)
-    # usamos un heap para manejar prioridades
-    heap = [(h0, 0, start, [start])]
-    #revisamos nodos ya visitados para evitar ciclos
+    counter = 0  # desempate cuando f es igual
+    heap = [(h0, counter, start, [start])]
     visited = set()
 
     while heap:
-        #heapq devuelve el nodo con menor f = g + h
-        f, g, cur, path = heapq.heappop(heap)
-        # si ya visitamos esta celda, la ignoramos
+        f, _, cur, path = heapq.heappop(heap)
         if cur in visited:
             continue
         visited.add(cur)
-        # si llegamos a la meta, devolvemos el camino
         if cur == goal:
             return path
-        # exploramos vecinos (arriba, abajo, izquierda, derecha)
         for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
             nb = (cur[0]+dr, cur[1]+dc)
-            # verificamos que el vecino esté dentro del grid, no sea un bloqueado/choque con el cuerpo y no lo hayamos visitado
             if 0 <= nb[0] < rows and 0 <= nb[1] < cols and nb not in blocked and nb not in visited:
-                ng = g + 1
-                heapq.heappush(heap, (ng + manhattan(nb, goal), ng, nb, path+[nb]))
+                ng = len(path)  # g(n) real basado en largo del camino
+                counter += 1
+                heapq.heappush(heap, (ng + manhattan(nb, goal), counter, nb, path+[nb]))
     return None
 
 
@@ -127,9 +121,12 @@ class SnakeAgent:
         if not self.alive or self.food is None:
             return
 
+        # si ya tenemos ruta válida, no recalcular
+        if self.path and len(self.path) > 1:
+            return
+
         head    = self.snake[0]
-        # bloqueamos las celdas ocupadas por el cuerpo de la serpiente (excepto la cabeza) para evitar colisiones
-        blocked = set(self.snake[1:])
+        blocked = set(self.snake[1:-1])  # la última celda se libera porque la serpiente se mueve
 
         # 1) Intentar ruta directa A* hacia la comida
         path = astar(head, self.food, blocked, COLS, ROWS)
@@ -141,7 +138,7 @@ class SnakeAgent:
             future_blocked = set(future_snake[1:])
             space = flood_fill(path[1], future_blocked, COLS, ROWS)
 
-            if space > len(self.snake):      # hay espacio suficiente
+            if space > len(self.snake) + 3:      # hay espacio suficiente para moverse después de tomar esta ruta
                 self.path = path
                 return
 
@@ -149,18 +146,25 @@ class SnakeAgent:
         # si no encontramos ruta segura, intentamos sobrevivir moviéndonos al vecino con más espacio libre
         best_move  = None
         best_space = -1
+
         for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
-            nb = (head[0]+dr, head[1]+dc)
+            nb = (head[0] + dr, head[1] + dc)
+
             if 0 <= nb[0] < ROWS and 0 <= nb[1] < COLS and nb not in blocked:
-                space = flood_fill(nb, blocked, COLS, ROWS)
+
+                # simular movimiento
+                future_snake = [nb] + self.snake[:-1]
+                future_blocked = set(future_snake[1:-1])
+
+                space = flood_fill(nb, future_blocked, COLS, ROWS)
+
                 if space > best_space:
                     best_space = space
-                    best_move  = nb
-
+                    best_move = nb
         if best_move:
             self.path = [head, best_move]
         else:
-            self.path = []   # sin salida
+            self.path = []
 
     # ejecutar un paso del juego: decidir movimiento, actualizar posición, verificar colisiones, comer comida y actualizar métricas
     def step(self):
